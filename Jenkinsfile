@@ -14,7 +14,7 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                git branch: "${params.BRANCH}", url: '<your-repo-url>'
+                git branch: "${params.BRANCH}", url: 'https://github.com/lakshmanvpg/jenkins-when-practice'
             }
         }
 
