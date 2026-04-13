@@ -2,81 +2,105 @@ pipeline {
     agent any
 
     parameters {
-        choice(name: 'ENV', choices: ['dev', 'qa', 'prod'], description: 'Select environment')
+        choice(name: 'ENV', choices: ['dev', 'qa', 'prod'], description: 'Environment')
+        string(name: 'BRANCH', defaultValue: 'main', description: 'Simulate branch')
+    }
+
+    environment {
+        APP_ENV = "dev"
     }
 
     stages {
 
         stage('Checkout') {
             steps {
-                checkout scm
+                git branch: "${params.BRANCH}", url: '<your-repo-url>'
             }
         }
 
         stage('Debug') {
             steps {
-                echo "BRANCH_NAME = ${env.BRANCH_NAME}"
                 echo "GIT_BRANCH = ${env.GIT_BRANCH}"
+                echo "PARAM BRANCH = ${params.BRANCH}"
                 echo "ENV = ${params.ENV}"
             }
         }
 
-        stage('Build') {
-            steps {
-                echo "🔨 Building project"
-            }
-        }
-
-        stage('Test (Develop Only)') {
+        /*********** BRANCH ***********/
+        stage('MAIN Branch') {
             when {
-                branch 'develop'
+                expression { params.BRANCH == 'main' }
             }
             steps {
-                echo "🧪 Running tests on DEVELOP"
+                echo "✅ Running on MAIN"
             }
         }
 
-        stage('Release (Tag Only)') {
+        /*********** EXPRESSION ***********/
+        stage('Develop Check') {
             when {
-                tag "v*"
+                expression { params.BRANCH.contains('develop') }
             }
             steps {
-                echo "🏷 Release build triggered"
+                echo "🧠 DEVELOP branch detected"
             }
         }
 
-        stage('Deploy to PROD') {
+        /*********** ENVIRONMENT ***********/
+        stage('Environment Check') {
+            when {
+                environment name: 'APP_ENV', value: 'dev'
+            }
+            steps {
+                echo "🌍 APP_ENV = DEV"
+            }
+        }
+
+        /*********** EQUALS ***********/
+        stage('Equals Check') {
+            when {
+                expression { params.ENV == 'prod' }
+            }
+            steps {
+                echo "⚖ ENV = PROD"
+            }
+        }
+
+        /*********** NOT ***********/
+        stage('Not Feature Branch') {
+            when {
+                not {
+                    expression { params.BRANCH.contains('feature') }
+                }
+            }
+            steps {
+                echo "❌ Not a feature branch"
+            }
+        }
+
+        /*********** ALLOF ***********/
+        stage('Main + Prod') {
             when {
                 allOf {
-                    branch 'main'
+                    expression { params.BRANCH == 'main' }
                     expression { params.ENV == 'prod' }
                 }
             }
             steps {
-                echo "🚀 Deploying to PRODUCTION"
+                echo "✅ MAIN + PROD matched"
             }
         }
 
-        stage('Skip Feature Branch') {
-            when {
-                not {
-                    expression { env.GIT_BRANCH?.contains("feature") }
-                }
-            }
-            steps {
-                echo "✅ Not a feature branch"
-            }
-        }
-
-        stage('Run Main OR Develop') {
+        /*********** ANYOF ***********/
+        stage('Main OR Develop') {
             when {
                 anyOf {
-                    branch 'main'
-                    branch 'develop'
+                    expression { params.BRANCH == 'main' }
+                    expression { params.BRANCH == 'develop' }
                 }
             }
             steps {
-                echo "🔀 Running on MAIN or DEVELOP"
+                echo "🔀 MAIN or DEVELOP"
             }
         }
     }
